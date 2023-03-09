@@ -6,7 +6,7 @@ Use [olammi dialEye](https://olammi.iki.fi/sw/dialEye/) to read rotary utility m
 
 ## Environament variables
 
-See commonn environment variables from [MQTT-Framework](https://github.com/paulianttila/MQTT-Framework).
+See common environment variables from [MQTT-Framework](https://github.com/paulianttila/MQTT-Framework).
 
 | **Variable**       | **Default**         | **Descrition**                                                          |
 |--------------------|---------------------|-------------------------------------------------------------------------|
