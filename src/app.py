@@ -45,13 +45,12 @@ class MyApp:
             "fecth_errors", "", registry=self.metrics_registry
         )
         self.exit = False
-
         self.previous_time = 0
         self.m3 = 0
         self.previous_value = 0
         self.already_increased = False
-        self.init_values()
         self.add_url_rule("/", view_func=self.result_page)
+        self.init_values()
 
     def get_version(self) -> str:
         return "1.0.0"
@@ -91,16 +90,17 @@ class MyApp:
             self.executing = False
 
     def update(self) -> None:
-        retval, litre = self.get_dialeye_value()
+        retval, raw = self.get_dialeye_value()
+        litre = self.convert_dialeye_value(retval, raw)
         if retval == 0 and litre is not None:
             self.succesfull_fecth_metric.inc()
             self.handle_dialeye_value(litre)
         else:
-            self.logger.error(f"DialEye command execution failed: {retval}")
+            self.logger.error(f"DialEye command execution failed: {retval} {raw}")
             self.fecth_errors_metric.inc()
             self.publish_zero_consumption()
 
-    def get_dialeye_value(self) -> tuple[int, float | None]:
+    def get_dialeye_value(self) -> tuple[int, str | None]:
         start = time.time()
         retval, result = self.execute_command(
             [
@@ -117,16 +117,18 @@ class MyApp:
         )
         end = time.time()
         result = result.strip()
-        litre = round(float(result) / 10, 2) if retval == 0 else None
+        
         self.logger.debug(
-            "DialEye result (retval=%d, time=%f): %s (%s)",
+            "DialEye result (retval=%d, time=%f): %s",
             retval,
             (end - start),
             result,
-            str(litre),
         )
-        return retval, litre
+        return retval, result
 
+    def convert_dialeye_value(self, retval: int, value: str) -> float | None:
+        return round(float(value) / 10, 2) if retval == 0 else None
+        
     def handle_dialeye_value(self, litre: float) -> None:
         current_value, consumption = self.check_rollover(litre)
         if consumption >= 0:
@@ -166,7 +168,7 @@ class MyApp:
             consumption_l_per_min,
             consumption,
         )
-        self.publish_values(current_value, consumption_l_per_min)
+        self.publish_consumption_values(current_value, consumption_l_per_min)
 
     def handle_negative_consumption(
         self, current_value: float, consumption: float
@@ -196,7 +198,7 @@ class MyApp:
         return self.calc_values(litre)
 
     def calc_values(self, litre) -> tuple[float, float]:
-        current_value = round(self.m3 + litre / 1000, 5)
+        current_value = self.m3 + round(litre / 1000, 5)
         consumption = (current_value - self.previous_value) * 1000  # litre
         return current_value, consumption
 
@@ -254,7 +256,7 @@ class MyApp:
             file.write(data)
             file.truncate()
 
-    def publish_values(
+    def publish_consumption_values(
         self, current_value_m3: float, instant_consumption_l_per_min: float
     ) -> None:
         self.publish_value_to_mqtt_topic("value", current_value_m3, True)
