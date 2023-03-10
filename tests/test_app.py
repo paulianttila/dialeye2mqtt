@@ -1,7 +1,9 @@
 import time
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
-from src.app import MyApp
+
+import pytest
+from src.app import Data, MyApp
 from mqtt_framework.app import TriggerSource
 
 
@@ -44,7 +46,9 @@ class TestSuccesfullCase(TestCase):
         mock_get_dialeye_value.assert_called_once()
         mock_read_data_file.assert_called_once()
         mock_publish_zero_consumption.assert_not_called()
-        mock_publish_consumption_values.assert_called_once_with(5.5691, 4.2)
+        mock_publish_consumption_values.assert_called_once_with(
+            Data(5.5691, pytest.approx(2.1, 0.01)), pytest.approx(4.2, 0.01)
+        )
         mock_write_data_file.assert_called_once_with("dummy_file", "5;False;5.569100")
         assert app.m3 == 5
         assert app.previous_time > time.time() - 1
@@ -88,7 +92,9 @@ class TestRollover(TestCase):
         mock_get_dialeye_value.assert_called_once()
         mock_read_data_file.assert_called_once()
         mock_publish_zero_consumption.assert_not_called()
-        mock_publish_consumption_values.assert_called_once_with(6.0012, 4.4)
+        mock_publish_consumption_values.assert_called_once_with(
+            Data(6.0012, pytest.approx(2.2, 0.01)), pytest.approx(4.4, 0.01)
+        )
         mock_write_data_file.assert_called_once_with("dummy_file", "6;True;6.001200")
         assert app.m3 == 6
         assert app.previous_time > time.time() - 1
@@ -170,7 +176,9 @@ class TestEmptyDataFile(TestCase):
         mock_get_dialeye_value.assert_called_once()
         mock_read_data_file.assert_not_called()
         mock_publish_zero_consumption.assert_not_called()
-        mock_publish_consumption_values.assert_called_once_with(1234.56781, 0)
+        mock_publish_consumption_values.assert_called_once_with(
+            Data(1234.56781, pytest.approx(1234567.81, 0.01)), pytest.approx(0, 0.01)
+        )
         mock_write_data_file.assert_called_once_with(
             "dummy_file", "1234;False;1234.567810"
         )

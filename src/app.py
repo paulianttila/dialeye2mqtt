@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from mqtt_framework import Framework
 from mqtt_framework import Config
 from mqtt_framework.callbacks import Callbacks
@@ -10,6 +11,12 @@ from datetime import datetime
 import time
 import os
 import subprocess
+
+
+@dataclass
+class Data:
+    current_value: float
+    consumption: float
 
 
 class MyConfig(Config):
@@ -117,7 +124,7 @@ class MyApp:
         )
         end = time.time()
         result = result.strip()
-        
+
         self.logger.debug(
             "DialEye result (retval=%d, time=%f): %s",
             retval,
@@ -127,80 +134,79 @@ class MyApp:
         return retval, result
 
     def convert_dialeye_value(self, retval: int, value: str) -> float | None:
-        return round(float(value) / 10, 2) if retval == 0 else None
-        
-    def handle_dialeye_value(self, litre: float) -> None:
-        current_value, consumption = self.check_rollover(litre)
-        if consumption >= 0:
-            self.handle_consumption(current_value, consumption)
-        else:
-            self.handle_negative_consumption(current_value, consumption)
+        return float(value) / 10 if retval == 0 else None
 
-        self.store_data(current_value)
-        self.previous_value = current_value
+    def handle_dialeye_value(self, litre: float) -> None:
+        data = self.check_rollover(litre)
+        if data.consumption >= 0:
+            self.handle_consumption(data)
+        else:
+            self.handle_negative_consumption(data)
+
+        self.store_data(data.current_value)
+        self.previous_value = data.current_value
         self.logger.debug(
-            "m3=%d, litre=%.2f, already_increased=%r, previous_value=%.5f m3"
-            ", current_value=%.5f m3, consumption=%.2f l",
+            "m3=%d, litre=%f, already_increased=%r, previous_value=%f m3"
+            ", current_value=%f m3, consumption=%f l",
             self.m3,
             litre,
             self.already_increased,
             self.previous_value,
-            current_value,
-            consumption,
+            data.current_value,
+            data.consumption,
         )
 
-    def check_rollover(self, litre: float) -> tuple[float, float]:
-        current_value, consumption = self.calc_values(litre)
+    def check_rollover(self, litre: float) -> Data:
+        data = self.calc_values(litre)
 
         if litre < 100 and self.already_increased is False:
-            current_value, consumption = self.inc_m3_and_calc_values(litre)
+            data = self.inc_m3_and_calc_values(litre)
             self.already_increased = True
         elif litre >= 400 and litre < 700 and self.already_increased is True:
             self.logger.info("Cleared already_increased flag")
             self.already_increased = False
-        return current_value, consumption
+        return data
 
-    def handle_consumption(self, current_value: float, consumption: float) -> None:
-        consumption_l_per_min = self.calc_instant_consumtion(consumption)
+    def handle_consumption(self, data: Data) -> None:
+        consumption_l_per_min = self.calc_instant_consumtion(data)
         self.logger.info(
             "Current value = %.5f m3, consumption = %.2f l/min (%.2f l)",
-            current_value,
+            data.current_value,
             consumption_l_per_min,
-            consumption,
+            data.consumption,
         )
-        self.publish_consumption_values(current_value, consumption_l_per_min)
+        self.publish_consumption_values(data, consumption_l_per_min)
 
-    def handle_negative_consumption(
-        self, current_value: float, consumption: float
-    ) -> None:
+    def handle_negative_consumption(self, data: Data) -> None:
         self.logger.error(
-            "Consuption %.2f is less than 0, ignore update "
-            "(current_value=%.5f m3, previous_value=%.5f m3)",
-            consumption,
-            current_value,
+            "Consuption %f is less than 0, ignore update "
+            "(current_value=%f m3, previous_value=%f m3)",
+            data.consumption,
+            data.current_value,
             self.previous_value,
         )
         self.publish_zero_consumption()
 
-    def calc_instant_consumtion(self, consumption) -> float:
+    def calc_instant_consumtion(self, data: Data) -> float:
         now = time.time()
         instant_consumption_l_per_min = 0
-        if consumption > 0 and self.previous_time > 0:
-            instant_consumption_l_per_min = round(
-                (consumption / (now - self.previous_time) * 60), 2
+        if data.consumption > 0 and self.previous_time > 0:
+            instant_consumption_l_per_min = (
+                data.consumption / (now - self.previous_time) * 60
             )
+
         self.previous_time = now
         return instant_consumption_l_per_min
 
-    def inc_m3_and_calc_values(self, litre) -> tuple[float, float]:
+    def inc_m3_and_calc_values(self, litre) -> Data:
         self.logger.info("Increase %d m3 by one to %d", self.m3, self.m3 + 1)
         self.m3 = self.m3 + 1
         return self.calc_values(litre)
 
-    def calc_values(self, litre) -> tuple[float, float]:
-        current_value = self.m3 + round(litre / 1000, 5)
+    def calc_values(self, litre) -> Data:
+        current_value = self.m3 + litre / 1000
         consumption = (current_value - self.previous_value) * 1000  # litre
-        return current_value, consumption
+        return Data(current_value, consumption)
 
     def execute_command(self, cmd, timeout=5, cwd=None) -> tuple[int, str]:
         r = subprocess.run(
@@ -257,12 +263,12 @@ class MyApp:
             file.truncate()
 
     def publish_consumption_values(
-        self, current_value_m3: float, instant_consumption_l_per_min: float
+        self, data: Data, instant_consumption_l_per_min: float
     ) -> None:
-        self.publish_value_to_mqtt_topic("value", current_value_m3, True)
+        self.publish_value_to_mqtt_topic("value", f"{data.current_value:.5f}", True)
         self.publish_value_to_mqtt_topic(
             "consumptionLitrePerMin",
-            instant_consumption_l_per_min,
+            f"{instant_consumption_l_per_min:.2f}",
             True,
         )
         self.publish_value_to_mqtt_topic(
@@ -299,6 +305,7 @@ class MyApp:
             cwd=self.config["WEB_STATIC_DIR"],
         )
         self.logger.info("Image update result (retval=%d): %s", retval, result)
+
 
 if __name__ == "__main__":
     Framework().start(MyApp(), MyConfig(), blocked=True)
