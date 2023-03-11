@@ -163,11 +163,11 @@ class MyApp:
         return (r.returncode, r.stdout)
 
     def init_meter(self) -> Meter:
-        meter = self.read_data()
+        meter = self.create_meter_from_file_data()
         if meter is None:
             m3 = int(self.config["M3_INIT_VALUE"])
-            meter = Meter(m3=m3, m3_already_increased=False, value=float(m3))
             self.logger.info(f"Initialize m3 to {m3}")
+            meter = Meter(m3=m3, m3_already_increased=False, value=float(m3))
 
         self.logger.info(
             "Initial values: m3=%d, m3_already_increased=%r, value=%f",
@@ -177,22 +177,20 @@ class MyApp:
         )
         return meter
 
-    def read_data(self) -> Meter | None:
+    def create_meter_from_file_data(self) -> Meter | None:
         filename = self.config["DATA_FILE"]
         if not os.path.isfile(filename):
             self.logger.info(f"{filename} file does not exists")
             return None
         self.logger.info(f"Initialize data from {filename} file")
         data = self.read_data_file(filename)
-        if len(data) == 0:
-            return None
         try:
-            return self.create_meter(data)
+            return self.create_meter_from_string(data)
         except Exception:
             self.logger.info(f"{filename} file content is invalid")
             return None
 
-    def create_meter(self, data: str) -> Meter:
+    def create_meter_from_string(self, data: str) -> Meter:
         m3_str, m3_already_increased_str, value_str = data.strip().split(";")
         return Meter(
             m3=int(m3_str),
