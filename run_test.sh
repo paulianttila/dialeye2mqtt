@@ -7,4 +7,6 @@ PWD=$(pwd)
 
 echo "Current folder: ${PWD}"
 
+export PYTHONPATH=${PYTHONPATH}:${PWD}/src/
+
 python -m pytest tests/

@@ -1,9 +1,9 @@
-import time
+from datetime import datetime, timedelta
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
 import pytest
-from src.app import Data, MyApp
+from src.app import MyApp
 from mqtt_framework.app import TriggerSource
 
 
@@ -37,9 +37,8 @@ class TestSuccesfullCase(TestCase):
         # Execute app
         app = MyApp()
         app.init(m)
-        now = time.time()
-        # emulate 60 sec update interval to get instant value update
-        app.previous_time = now - 30
+        # emulate 30 sec update interval to get instant value update
+        app.meter._current_value.time = datetime.now() - timedelta(seconds = 30)
         app.do_update(TriggerSource.INTERVAL)
 
         # Verify
@@ -47,11 +46,9 @@ class TestSuccesfullCase(TestCase):
         mock_read_data_file.assert_called_once()
         mock_publish_zero_consumption.assert_not_called()
         mock_publish_consumption_values.assert_called_once_with(
-            Data(5.5691, pytest.approx(2.1, 0.01)), pytest.approx(4.2, 0.01)
+            5.5691, pytest.approx(4.2, 0.01)
         )
         mock_write_data_file.assert_called_once_with("dummy_file", "5;False;5.569100")
-        assert app.m3 == 5
-        assert app.previous_time > time.time() - 1
 
 
 class TestRollover(TestCase):
@@ -83,9 +80,8 @@ class TestRollover(TestCase):
             "M3_INIT_VALUE": "1234",
         }
         app.init(m)
-        now = time.time()
-        # emulate 60 sec update interval to get instant value update
-        app.previous_time = now - 30
+        # emulate 30 sec update interval to get instant value update
+        app.meter._current_value.time = datetime.now() - timedelta(seconds = 30)
         app.do_update(TriggerSource.INTERVAL)
 
         # Verify
@@ -93,11 +89,9 @@ class TestRollover(TestCase):
         mock_read_data_file.assert_called_once()
         mock_publish_zero_consumption.assert_not_called()
         mock_publish_consumption_values.assert_called_once_with(
-            Data(6.0012, pytest.approx(2.2, 0.01)), pytest.approx(4.4, 0.01)
+            6.0012, pytest.approx(4.4, 0.01)
         )
         mock_write_data_file.assert_called_once_with("dummy_file", "6;True;6.001200")
-        assert app.m3 == 6
-        assert app.previous_time > time.time() - 1
 
 
 class TestFailedDialEyeExecution(TestCase):
@@ -137,8 +131,6 @@ class TestFailedDialEyeExecution(TestCase):
         mock_publish_zero_consumption.assert_called_once()
         mock_publish_consumption_values.assert_not_called()
         mock_write_data_file.assert_not_called()
-        assert app.m3 == 5
-        assert app.previous_time == 0
 
 
 class TestEmptyDataFile(TestCase):
@@ -176,11 +168,7 @@ class TestEmptyDataFile(TestCase):
         mock_get_dialeye_value.assert_called_once()
         mock_read_data_file.assert_not_called()
         mock_publish_zero_consumption.assert_not_called()
-        mock_publish_consumption_values.assert_called_once_with(
-            Data(1234.56781, pytest.approx(1234567.81, 0.01)), pytest.approx(0, 0.01)
-        )
+        mock_publish_consumption_values.assert_called_once_with(1234.56781, 0)
         mock_write_data_file.assert_called_once_with(
             "dummy_file", "1234;False;1234.567810"
         )
-        assert app.m3 == 1234
-        assert app.previous_time > 0

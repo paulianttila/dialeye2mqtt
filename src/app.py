@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from mqtt_framework import Framework
 from mqtt_framework import Config
 from mqtt_framework.callbacks import Callbacks
@@ -12,11 +11,7 @@ import time
 import os
 import subprocess
 
-
-@dataclass
-class Data:
-    current_value: float
-    consumption: float
+from meter import Meter
 
 
 class MyConfig(Config):
@@ -52,12 +47,9 @@ class MyApp:
             "fecth_errors", "", registry=self.metrics_registry
         )
         self.exit = False
-        self.previous_time = 0
-        self.m3 = 0
-        self.previous_value = 0
-        self.already_increased = False
         self.add_url_rule("/", view_func=self.result_page)
-        self.init_values()
+        self.meter = self.init_meter()
+        self.logger.debug(f"{self.meter}")
 
     def get_version(self) -> str:
         return "1.0.0"
@@ -98,10 +90,10 @@ class MyApp:
 
     def update(self) -> None:
         retval, raw = self.get_dialeye_value()
-        litre = self.convert_dialeye_value(retval, raw)
+        litre = self.convert_dialeye_value_to_litre(retval, raw)
         if retval == 0 and litre is not None:
             self.succesfull_fecth_metric.inc()
-            self.handle_dialeye_value(litre)
+            self.handle_update(litre)
         else:
             self.logger.error(f"DialEye command execution failed: {retval} {raw}")
             self.fecth_errors_metric.inc()
@@ -133,80 +125,36 @@ class MyApp:
         )
         return retval, result
 
-    def convert_dialeye_value(self, retval: int, value: str) -> float | None:
+    def convert_dialeye_value_to_litre(self, retval: int, value: str) -> float | None:
         return float(value) / 10 if retval == 0 else None
 
-    def handle_dialeye_value(self, litre: float) -> None:
-        data = self.check_rollover(litre)
-        if data.consumption >= 0:
-            self.handle_consumption(data)
-        else:
-            self.handle_negative_consumption(data)
-
-        self.store_data(data.current_value)
-        self.previous_value = data.current_value
-        self.logger.debug(
-            "m3=%d, litre=%f, already_increased=%r, previous_value=%f m3"
-            ", current_value=%f m3, consumption=%f l",
-            self.m3,
-            litre,
-            self.already_increased,
-            self.previous_value,
-            data.current_value,
-            data.consumption,
-        )
-
-    def check_rollover(self, litre: float) -> Data:
-        data = self.calc_values(litre)
-
-        if litre < 100 and self.already_increased is False:
-            data = self.inc_m3_and_calc_values(litre)
-            self.already_increased = True
-        elif litre >= 400 and litre < 700 and self.already_increased is True:
-            self.logger.info("Cleared already_increased flag")
-            self.already_increased = False
-        return data
-
-    def handle_consumption(self, data: Data) -> None:
-        consumption_l_per_min = self.calc_instant_consumtion(data)
+    def handle_update(self, litre: float):
+        self.meter.update_litre(litre)
+        self.logger.debug(f"{self.meter}")
         self.logger.info(
-            "Current value = %.5f m3, consumption = %.2f l/min (%.2f l)",
-            data.current_value,
-            consumption_l_per_min,
-            data.consumption,
+            "Current value = %.5f m3, consumption = %.2f l/min",
+            self.meter.value,
+            self.meter.instant_consumption_l_per_min,
         )
-        self.publish_consumption_values(data, consumption_l_per_min)
+        self.store_data(
+            self.meter.m3,
+            self.meter.m3_already_increased,
+            self.meter.value,
+        )
+        if self.meter.instant_consumption_l_per_min >= 0:
+            self.publish_consumption_values(
+                self.meter.value,
+                self.meter.instant_consumption_l_per_min,
+            )
+        else:
+            self.handle_negative_consumption()
 
-    def handle_negative_consumption(self, data: Data) -> None:
+    def handle_negative_consumption(self) -> None:
         self.logger.error(
-            "Consuption %f is less than 0, ignore update "
-            "(current_value=%f m3, previous_value=%f m3)",
-            data.consumption,
-            data.current_value,
-            self.previous_value,
+            "Consuption %.2f l/min is less than 0, ignore update",
+            self.meter.instant_consumption_l_per_min,
         )
         self.publish_zero_consumption()
-
-    def calc_instant_consumtion(self, data: Data) -> float:
-        now = time.time()
-        instant_consumption_l_per_min = 0
-        if data.consumption > 0 and self.previous_time > 0:
-            instant_consumption_l_per_min = (
-                data.consumption / (now - self.previous_time) * 60
-            )
-
-        self.previous_time = now
-        return instant_consumption_l_per_min
-
-    def inc_m3_and_calc_values(self, litre) -> Data:
-        self.logger.info("Increase %d m3 by one to %d", self.m3, self.m3 + 1)
-        self.m3 = self.m3 + 1
-        return self.calc_values(litre)
-
-    def calc_values(self, litre) -> Data:
-        current_value = self.m3 + litre / 1000
-        consumption = (current_value - self.previous_value) * 1000  # litre
-        return Data(current_value, consumption)
 
     def execute_command(self, cmd, timeout=5, cwd=None) -> tuple[int, str]:
         r = subprocess.run(
@@ -214,41 +162,48 @@ class MyApp:
         )
         return (r.returncode, r.stdout)
 
-    def init_values(self) -> None:
-        if not self.read_data():
-            self.m3 = int(self.config["M3_INIT_VALUE"])
-            self.logger.info(f"Initialize m3 to {self.m3}")
+    def init_meter(self) -> Meter:
+        meter = self.read_data()
+        if meter is None:
+            m3 = int(self.config["M3_INIT_VALUE"])
+            meter = Meter(m3=m3, m3_already_increased=False, value=float(m3))
+            self.logger.info(f"Initialize m3 to {m3}")
 
         self.logger.info(
-            "Initial values: m3=%d, already_increased=%r, previous_value=%f",
-            self.m3,
-            self.already_increased,
-            self.previous_value,
+            "Initial values: m3=%d, m3_already_increased=%r, value=%f",
+            meter.m3,
+            meter.m3_already_increased,
+            meter.value,
         )
+        return meter
 
-    def read_data(self) -> bool:
+    def read_data(self) -> Meter | None:
         filename = self.config["DATA_FILE"]
         if not os.path.isfile(filename):
             self.logger.info(f"{filename} file does not exists")
-            return False
+            return None
         self.logger.info(f"Initialize data from {filename} file")
         data = self.read_data_file(filename)
         if len(data) == 0:
-            return False
+            return None
         try:
-            m3_str, already_increased_str, previous_value_str = data.strip().split(";")
-            self.m3 = int(m3_str)
-            self.already_increased = eval(already_increased_str)
-            self.previous_value = float(previous_value_str)
+            return self.create_meter(data)
         except Exception:
             self.logger.info(f"{filename} file content is invalid")
-            return False
-        return True
+            return None
 
-    def store_data(self, current_value: float):
+    def create_meter(self, data: str) -> Meter:
+        m3_str, m3_already_increased_str, value_str = data.strip().split(";")
+        return Meter(
+            m3=int(m3_str),
+            m3_already_increased=eval(m3_already_increased_str),
+            value=float(value_str),
+        )
+
+    def store_data(self, m3: int, m3_already_increased: bool, current_value: float):
         self.write_data_file(
             self.config["DATA_FILE"],
-            "%d;%r;%f" % (self.m3, self.already_increased, current_value),
+            "%d;%r;%f" % (m3, m3_already_increased, current_value),
         )
 
     def read_data_file(self, filename: str) -> str:
@@ -263,9 +218,9 @@ class MyApp:
             file.truncate()
 
     def publish_consumption_values(
-        self, data: Data, instant_consumption_l_per_min: float
+        self, current_value: float, instant_consumption_l_per_min: float
     ) -> None:
-        self.publish_value_to_mqtt_topic("value", f"{data.current_value:.5f}", True)
+        self.publish_value_to_mqtt_topic("value", f"{current_value:.5f}", True)
         self.publish_value_to_mqtt_topic(
             "consumptionLitrePerMin",
             f"{instant_consumption_l_per_min:.2f}",
