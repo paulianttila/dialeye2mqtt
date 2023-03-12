@@ -1,4 +1,4 @@
-FROM paulianttila/mqtt-framework:1.0.2
+FROM paulianttila/mqtt-framework:1.1.0
 
 ARG DIR=/app
 ARG APP=app.py
@@ -28,7 +28,7 @@ ENV LIBRARY_PATH=/lib:/usr/lib
 # See: https://github.com/Docker-Hub-frolvlad/docker-alpine-python3/pull/13
 ENV PYTHONUNBUFFERED=1
 
-ARG APK_PACKAGES=curl wget unzip python2 python2-dev py2-setuptools py-pip build-base jpeg-dev zlib-dev
+ARG APK_PACKAGES="curl wget unzip python2 python2-dev py2-setuptools py-pip build-base jpeg-dev zlib-dev"
 
 RUN apk add --no-cache ${APK_PACKAGES} \
       && python2 -m ensurepip --upgrade \
