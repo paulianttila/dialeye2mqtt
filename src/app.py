@@ -240,7 +240,7 @@ class MyApp:
 
     def result_page(self) -> str:
         self.update_image()
-        return render_template("index.html", current_value_m3=self.previous_value)
+        return render_template("index.html", current_value_m3=self.meter.value)
 
     def update_image(self) -> None:
         retval, result = self.execute_command(
