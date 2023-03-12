@@ -52,7 +52,7 @@ class MyApp:
         self.logger.debug(f"{self.meter}")
 
     def get_version(self) -> str:
-        return "2.0.2"
+        return "2.0.3"
 
     def stop(self) -> None:
         def wait_until(condition, interval=0.1, timeout=1, *args):
