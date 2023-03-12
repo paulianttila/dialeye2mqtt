@@ -15,3 +15,4 @@ git+https://github.com/paulianttila/MQTT-Framework.git@v1.0.2
 -r requirements.txt
 pip-tools
 pytest
+ruff

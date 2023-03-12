@@ -88,6 +88,8 @@ pytz-deprecation-shim==0.1.0.post0
     # via tzlocal
 rich==12.6.0
     # via flask-limiter
+ruff==0.0.254
+    # via -r requirements-dev.in
 six==1.16.0
     # via
     #   apscheduler
