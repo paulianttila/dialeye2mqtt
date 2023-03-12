@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt && rm /tmp/requirements.
 RUN mkdir -p ${WEBDIR}
 WORKDIR ${WEBDIR}
 COPY web ${WEBDIR}
+RUN mkdir -p ${WEBDIR}/static
+RUN chown ${USER} ${WEBDIR}/static
 
 RUN mkdir -p ${DIR}
 WORKDIR ${DIR}
