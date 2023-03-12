@@ -1,7 +1,8 @@
-FROM paulianttila/mqtt-framework:1.1.0
+FROM paulianttila/mqtt-framework:1.1.1
 
 ARG DIR=/app
 ARG APP=app.py
+ARG WEBDIR=/web
 
 ARG USER=app
 ARG GROUP=app
@@ -11,6 +12,10 @@ ENV APP=${APP}
 
 COPY requirements.txt /tmp/
 RUN pip install --no-cache-dir -r /tmp/requirements.txt && rm /tmp/requirements.txt
+
+RUN mkdir -p ${WEBDIR}
+WORKDIR ${WEBDIR}
+COPY web ${WEBDIR}
 
 RUN mkdir -p ${DIR}
 WORKDIR ${DIR}
