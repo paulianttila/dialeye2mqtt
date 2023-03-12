@@ -17,13 +17,13 @@ RUN mkdir -p ${WEBDIR}
 WORKDIR ${WEBDIR}
 COPY web ${WEBDIR}
 RUN mkdir -p ${WEBDIR}/static
-RUN chown ${USER} ${WEBDIR}/static
 
 RUN mkdir -p ${DIR}
 WORKDIR ${DIR}
 COPY src ${DIR}
 
 RUN addgroup -S ${GROUP} && adduser -S ${USER} -G ${GROUP}
+RUN chown ${USER} ${WEBDIR}/static
 
 ARG DIALEYE=dialeye.zip
 ARG DIALEYE_DOWNLOAD_URL=https://github.com/paulianttila/dialeye-docker/archive/refs/tags/v1.0b.zip
