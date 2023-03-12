@@ -29,7 +29,7 @@ class MyConfig(Config):
     M3_INIT_VALUE = 0
 
     DIALEYE = "/opt/dialEye/dialEye.py"
-    DIALEYE_PYTHON = "python2"
+    DIALEYE_PYTHON = "python3"
 
 
 class MyApp:

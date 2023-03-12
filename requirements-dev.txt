@@ -66,6 +66,8 @@ packaging==23.0
     #   pytest
 paho-mqtt==1.5.1
     # via flask-mqtt
+pillow==9.4.0
+    # via -r requirements.txt
 pip-tools==6.12.1
     # via -r requirements-dev.in
 pluggy==1.0.0

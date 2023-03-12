@@ -18,27 +18,18 @@ COPY src ${DIR}
 
 RUN addgroup -S ${GROUP} && adduser -S ${USER} -G ${GROUP}
 
-# dialEye specific, dialEye only support python 2.7
-ARG DIALEYE=dialEye_v10b.zip
-ARG DIALEYE_DOWNLOAD_URL=https://olammi.iki.fi/sw/dialEye/${DIALEYE}
+ARG DIALEYE=dialeye.zip
+ARG DIALEYE_DOWNLOAD_URL=https://github.com/paulianttila/dialeye-docker/archive/refs/tags/v1.0b.zip
+ARG DIALEYE_DIR=dialeye-docker-1.0b
 
-ENV LIBRARY_PATH=/lib:/usr/lib
-
-# This hack is widely applied to avoid python printing issues in docker containers.
-# See: https://github.com/Docker-Hub-frolvlad/docker-alpine-python3/pull/13
-ENV PYTHONUNBUFFERED=1
-
-ARG APK_PACKAGES="curl wget unzip python2 python2-dev py2-setuptools py-pip build-base jpeg-dev zlib-dev"
+ARG APK_PACKAGES="curl"
 
 RUN apk add --no-cache ${APK_PACKAGES} \
-      && python2 -m ensurepip --upgrade \
-      && python2 -m pip install Pillow \
-      && apk del build-base \
       && wget -O ${DIALEYE} ${DIALEYE_DOWNLOAD_URL} \
       && unzip ${DIALEYE} -d /opt \
+      && mv /opt/{DIALEYE_DIR}/dialEye /opt \
+      && rm -R /opt/{DIALEYE_DIR} \
       && rm ${DIALEYE}
-
-# end dialEye
 
 VOLUME /data
 WORKDIR /data
