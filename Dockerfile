@@ -20,15 +20,15 @@ RUN addgroup -S ${GROUP} && adduser -S ${USER} -G ${GROUP}
 
 ARG DIALEYE=dialeye.zip
 ARG DIALEYE_DOWNLOAD_URL=https://github.com/paulianttila/dialeye-docker/archive/refs/tags/v1.0b.zip
-ARG DIALEYE_DIR=dialeye-docker-1.0b
+ARG DIALEYE_UNZIP_DIR=dialeye-docker-1.0b
 
 ARG APK_PACKAGES="curl"
 
 RUN apk add --no-cache ${APK_PACKAGES} \
       && wget -O ${DIALEYE} ${DIALEYE_DOWNLOAD_URL} \
       && unzip ${DIALEYE} -d /opt \
-      && mv /opt/{DIALEYE_DIR}/dialEye /opt \
-      && rm -R /opt/{DIALEYE_DIR} \
+      && mv /opt/${DIALEYE_UNZIP_DIR}/dialEye /opt \
+      && rm -R /opt/${DIALEYE_UNZIP_DIR} \
       && rm ${DIALEYE}
 
 VOLUME /data
