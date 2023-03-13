@@ -2,9 +2,12 @@
 
 Dockerized dialEye with MQTT broker interface.
  
-Use [juhovan](https://github.com/juhovan) python3 dialEye version to read rotary utility meter dials using image recognition.
+Use [dialEye](https://olammi.iki.fi/sw/dialEye/) to read rotary utility meter dials using image recognition.
 
-Orginal version [olammi dialEye](https://olammi.iki.fi/sw/dialEye/).
+Kudos to:
+ * [olammi](https://olammi.iki.fi/sw/dialEye/) for the awesome dialEye application.
+ * [juhovan](https://github.com/juhovan) for dialEye python3 porting. 
+
 ## Environament variables
 
 See common environment variables from [MQTT-Framework](https://github.com/paulianttila/MQTT-Framework).
@@ -49,4 +52,6 @@ services:
 
  ### Calibration image
 
- Image for current calibration is available via index.html page.
+ Image for current calibration is available via index.html page with current consumption value.
+
+ ![plot](./pics/result.png)
