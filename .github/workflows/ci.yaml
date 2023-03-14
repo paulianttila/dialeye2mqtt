@@ -40,9 +40,14 @@ jobs:
           pip install -r requirements-dev.txt
           pip install -e .
 
-      # Include `--format=github` to enable automatic inline annotations.
       - name: Run Ruff
         run: ruff check --format=github .
+
+      - name: Run Black
+        run: black --check .
+
+      - name: Run Bandit scan
+        run: bandit -c pyproject.toml -r .
 
       - name: Run unit and integration tests
         run: |

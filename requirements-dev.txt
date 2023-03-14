@@ -10,16 +10,23 @@ apscheduler==3.9.1.post1
     #   mqtt-framework
 attrs==22.2.0
     # via pytest
+bandit[toml]==1.7.5
+    # via -r requirements-dev.in
+black==23.1.0
+    # via -r requirements-dev.in
 build==0.10.0
     # via pip-tools
 cheroot==9.0.0
     # via -r requirements-dev.in
 click==8.1.3
     # via
+    #   black
     #   flask
     #   pip-tools
 commonmark==0.9.1
     # via rich
+coverage==7.2.1
+    # via -r requirements-dev.in
 deprecated==1.2.13
     # via limits
 flask==2.2.2
@@ -37,6 +44,10 @@ flask-mqtt @ git+https://github.com/stlehmann/Flask-MQTT.git@master
     # via
     #   -r requirements-dev.in
     #   mqtt-framework
+gitdb==4.0.10
+    # via gitpython
+gitpython==3.1.31
+    # via bandit
 iniconfig==2.0.0
     # via pytest
 itsdangerous==2.1.2
@@ -57,19 +68,28 @@ more-itertools==9.0.0
     #   jaraco-functools
 mqtt-framework @ git+https://github.com/paulianttila/MQTT-Framework.git@v1.1.1
     # via -r requirements-dev.in
+mypy-extensions==1.0.0
+    # via black
 ordered-set==4.1.0
     # via flask-limiter
 packaging==23.0
     # via
+    #   black
     #   build
     #   limits
     #   pytest
 paho-mqtt==1.5.1
     # via flask-mqtt
+pathspec==0.11.0
+    # via black
+pbr==5.11.1
+    # via stevedore
 pillow==9.4.0
     # via -r requirements.txt
 pip-tools==6.12.1
     # via -r requirements-dev.in
+platformdirs==3.1.1
+    # via black
 pluggy==1.0.0
     # via pytest
 prometheus-client==0.15.0
@@ -88,14 +108,22 @@ pytz==2020.5
     # via apscheduler
 pytz-deprecation-shim==0.1.0.post0
     # via tzlocal
+pyyaml==6.0
+    # via bandit
 rich==12.6.0
-    # via flask-limiter
+    # via
+    #   bandit
+    #   flask-limiter
 ruff==0.0.254
     # via -r requirements-dev.in
 six==1.16.0
     # via
     #   apscheduler
     #   cheroot
+smmap==5.0.0
+    # via gitdb
+stevedore==5.0.0
+    # via bandit
 typing-extensions==4.4.0
     # via
     #   flask-limiter

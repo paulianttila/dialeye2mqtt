@@ -10,3 +10,5 @@ echo "Current folder: ${PWD}"
 export PYTHONPATH=${PYTHONPATH}:${PWD}/src/
 
 python -m pytest tests/
+coverage run -m unittest discover tests/
+coverage report -m
