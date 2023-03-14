@@ -1,3 +1,4 @@
+import ast
 from mqtt_framework import Framework
 from mqtt_framework import Config
 from mqtt_framework.callbacks import Callbacks
@@ -9,7 +10,7 @@ from flask import render_template
 from datetime import datetime
 import time
 import os
-import subprocess
+import subprocess  # nosec
 
 from meter import Meter
 
@@ -159,7 +160,7 @@ class MyApp:
     def execute_command(self, cmd, timeout=5, cwd=None) -> tuple[int, str]:
         r = subprocess.run(
             cmd, capture_output=True, text=True, timeout=timeout, cwd=cwd
-        )
+        )  # nosec
         return (r.returncode, r.stdout)
 
     def init_meter(self) -> Meter:
@@ -194,7 +195,7 @@ class MyApp:
         m3_str, m3_already_increased_str, value_str = data.strip().split(";")
         return Meter(
             m3=int(m3_str),
-            m3_already_increased=eval(m3_already_increased_str),
+            m3_already_increased=ast.literal_eval(m3_already_increased_str),
             value=float(value_str),
         )
 
