@@ -38,7 +38,7 @@ class TestSuccesfullCase(TestCase):
         app = MyApp()
         app.init(m)
         # emulate 30 sec update interval to get instant value update
-        app.meter._current_value.time = datetime.now() - timedelta(seconds = 30)
+        app.meter._current_value.time = datetime.now() - timedelta(seconds=30)
         app.do_update(TriggerSource.INTERVAL)
 
         # Verify
@@ -81,7 +81,7 @@ class TestRollover(TestCase):
         }
         app.init(m)
         # emulate 30 sec update interval to get instant value update
-        app.meter._current_value.time = datetime.now() - timedelta(seconds = 30)
+        app.meter._current_value.time = datetime.now() - timedelta(seconds=30)
         app.do_update(TriggerSource.INTERVAL)
 
         # Verify

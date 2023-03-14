@@ -24,7 +24,6 @@ class Meter:
         self._current_value.value = self.value
 
     def update_litre(self, litre: float) -> None:
-
         if litre < 100 and self.m3_already_increased is False:
             self.m3 = self.m3 + 1
             self._update_current_value(litre)
