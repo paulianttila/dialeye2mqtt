@@ -66,6 +66,7 @@ class Meter:
         self.instant_consumption_l_per_min = round(
             self.instant_consumption_l_per_min, 2
         )
+        self.instant_consumption_l_per_min += 0.0  # remove possible negative -0.00
         self._litre = round(self._litre, 2)
         self._instant_consumption_l = round(self._instant_consumption_l, 2)
         self._instant_consumption_l += 0.0  # remove possible negative -0.00
