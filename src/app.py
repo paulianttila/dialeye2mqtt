@@ -53,7 +53,7 @@ class MyApp:
         self.logger.debug(f"{self.meter}")
 
     def get_version(self) -> str:
-        return "2.0.5"
+        return "2.0.6"
 
     def stop(self) -> None:
         def wait_until(condition, interval=0.1, timeout=1, *args):
@@ -132,23 +132,26 @@ class MyApp:
     def handle_update(self, litre: float):
         self.meter.update_litre(litre)
         self.logger.debug(f"{self.meter}")
-        self.logger.info(
-            "Current value = %.5f m3, consumption = %.2f l/min",
-            self.meter.value,
-            self.meter.instant_consumption_l_per_min,
-        )
         self.store_data(
             self.meter.m3,
             self.meter.m3_already_increased,
             self.meter.value,
         )
         if self.meter.instant_consumption_l_per_min >= 0:
-            self.publish_consumption_values(
-                self.meter.value,
-                self.meter.instant_consumption_l_per_min,
-            )
+            self.handle_consumption()
         else:
             self.handle_negative_consumption()
+
+    def handle_consumption(self) -> None:
+        self.logger.info(
+            "Current value = %.5f m3, consumption = %.2f l/min",
+            self.meter.value,
+            self.meter.instant_consumption_l_per_min,
+        )
+        self.publish_consumption_values(
+            self.meter.value,
+            self.meter.instant_consumption_l_per_min,
+        )
 
     def handle_negative_consumption(self) -> None:
         self.logger.error(
