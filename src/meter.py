@@ -68,7 +68,7 @@ class Meter:
         )
         self.instant_consumption_l_per_min += 0.0  # remove possible negative -0.00
         self._litre = round(self._litre, 2)
-        self._instant_consumption_l = round(self._instant_consumption_l, 2)
+        self._instant_consumption_l = round(self._instant_consumption_l, 3)
         self._instant_consumption_l += 0.0  # remove possible negative -0.00
-        self._current_value.value = round(self._current_value.value, 5)
-        self._previous_value.value = round(self._previous_value.value, 5)
+        self._current_value.value = round(self._current_value.value, 6)
+        self._previous_value.value = round(self._previous_value.value, 6)
